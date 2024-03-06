@@ -1,13 +1,10 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
+	"html/template"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
-	"html/template"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
@@ -15,12 +12,13 @@ import (
 )
 
 type Todo struct {
-	ID   uint   `gorm:"primary_key"`
-	Task string `gorm:"not null"`
+	ID       uint   `gorm:"primary_key"`
+	Task     string `gorm:"not null"`
+	Complete bool   `gorm:"not null;default:false"`
 }
 
 func main() {
-	db, err := gorm.Open("postgres", "host=localhost port=5432 user=your_username dbname=your_database password=your_password sslmode=disable")
+	db, err := gorm.Open("postgres", "host=localhost port=5432 user=postgres dbname=todo password=postgres sslmode=disable")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -34,29 +32,17 @@ func main() {
 	router.GET("/todos", getTodosHandler(db))
 	router.POST("/todos", createTodoHandler(db))
 	router.PUT("/todos/:id", updateTodoHandler(db))
+	router.PUT("/todos/:id/complete", completeTodoHandler(db))
+	router.PUT("/todos/:id/uncomplete", uncompleteTodoHandler(db))
 	router.DELETE("/todos/:id", deleteTodoHandler(db))
 	router.GET("/alive", healthCheckHandler)
 	router.GET("/metrics", metricsHandler)
-
-	go func() {
-		fmt.Print("Enter a task (or 'quit' to exit): ")
-		scanner := bufio.NewScanner(os.Stdin)
-		for scanner.Scan() {
-			task := scanner.Text()
-			if task == "quit" {
-				break
-			}
-			todo := Todo{Task: task}
-			db.Create(&todo)
-			fmt.Print("Enter a task (or 'quit' to exit): ")
-		}
-	}()
 
 	router.Run(":8080")
 }
 
 func homeHandler(c *gin.Context) {
-	tmpl, err := template.ParseFiles("templates/index.html")
+	tmpl, err := template.ParseFiles("static/index.html")
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -65,7 +51,7 @@ func homeHandler(c *gin.Context) {
 
 	err = tmpl.Execute(c.Writer, nil)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})	
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 }
 
@@ -104,6 +90,36 @@ func updateTodoHandler(db *gorm.DB) gin.HandlerFunc {
 		db.Save(&todo)
 		c.JSON(http.StatusOK, todo)
 	}
+}
+
+func completeTodoHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id, _ := strconv.Atoi(c.Param("id"))
+		var todo Todo
+		if err := db.First(&todo, id).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Todo not found"})
+			return
+		}
+		todo.Complete = true
+		db.Save(&todo)
+		c.JSON(http.StatusOK, todo)
+	}
+
+}
+
+func uncompleteTodoHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id, _ := strconv.Atoi(c.Param("id"))
+		var todo Todo
+		if err := db.First(&todo, id).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Todo not found"})
+			return
+		}
+		todo.Complete = false
+		db.Save(&todo)
+		c.JSON(http.StatusOK, todo)
+	}
+
 }
 
 func deleteTodoHandler(db *gorm.DB) gin.HandlerFunc {

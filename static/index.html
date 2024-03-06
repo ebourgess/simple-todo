@@ -2,6 +2,112 @@
 <html>
 <head>
     <title>Todo List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        #todoForm {
+            margin-bottom: 20px;
+        }
+
+        #todoInput {
+            padding: 5px;
+            width: 200px;
+        }
+
+        ul#todoList {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        button {
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        button.complete {
+            background-color: green;
+            color: #fff;
+        }
+
+        button.uncomplete {
+            background-color: orange;
+            color: #fff;
+            margin-left: 10px;
+        }
+
+        button.edit {
+            background-color: yellow;
+            color: #000;
+            margin-left: 10px;
+        }
+
+        button.delete {
+            background-color: red;
+            color: #fff;
+            margin-left: 10px;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        button[disabled] {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 300px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
     <h1>Todo List</h1>
@@ -9,12 +115,41 @@
         <input type="text" id="todoInput" placeholder="New task">
         <button type="submit">Add</button>
     </form>
+    <h2>Todo</h2>
     <ul id="todoList"></ul>
+    <h2>Completed</h2>
+    <ul id="completedList"></ul>
+
+    <!-- Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Edit Task</h2>
+            <input type="text" id="editInput" placeholder="Edit task">
+            <button id="saveButton">Save</button>
+        </div>
+    </div>
 
     <script>
         document.getElementById('todoForm').addEventListener('submit', function(e) {
             e.preventDefault();
             var task = document.getElementById('todoInput').value;
+            addTodoItem(task);
+        });
+
+        fetch('/todos')
+        .then(response => response.json())
+        .then(data => {
+            data.forEach(function(todo) {
+                if (todo.Complete) {
+                    createCompletedItem(todo);
+                } else {
+                    createTodoItem(todo);
+                }
+            });
+        });
+
+        function addTodoItem(task) {
             fetch('/todos', {
                 method: 'POST',
                 headers: {
@@ -24,24 +159,207 @@
             })
             .then(response => response.json())
             .then(data => {
-                var li = document.createElement('li');
-                li.textContent = data.Task;
-                document.getElementById('todoList').appendChild(li);
+                createTodoItem(data);
             })
             .catch((error) => {
                 console.error('Error:', error);
             });
-        });
+        }
 
-        fetch('/todos')
-        .then(response => response.json())
-        .then(data => {
-            data.forEach(function(todo) {
-                var li = document.createElement('li');
-                li.textContent = todo.Task;
-                document.getElementById('todoList').appendChild(li);
+        function createTodoItem(todo) {
+            var todoList = document.getElementById('todoList');
+            var li = createListItem(todo);
+
+            var completeButton = createButton('Complete', 'complete', function() {
+                completeTodoItem(todo.ID, li);
             });
-        });
+
+            var editButton = createButton('Edit', 'edit', function() {
+                openEditModal(todo.ID, li.querySelector('.task'));
+            });
+
+            var deleteButton = createButton('Delete', 'delete', function() {
+                deleteTodoItem(todo.ID, li);
+            });
+
+            li.querySelector('.actions').append(completeButton, editButton, deleteButton);
+            todoList.appendChild(li);
+        }
+
+        function createCompletedItem(todo) {
+            var completedList = document.getElementById('completedList');
+            var li = createListItem(todo);
+
+            var uncompleteButton = createButton('Uncomplete', 'uncomplete', function() {
+                uncompleteTodoItem(todo.ID, li);
+            });
+
+            var deleteButton = createButton('Delete', 'delete', function() {
+                deleteTodoItem(todo.ID, li);
+            });
+
+            li.querySelector('.actions').append(uncompleteButton, deleteButton);
+            completedList.appendChild(li);
+        }
+
+        function createListItem(todo) {
+            var li = document.createElement('li');
+            var taskDiv = document.createElement('div');
+            var actionsDiv = document.createElement('div');
+
+            taskDiv.textContent = todo.Task;
+            taskDiv.classList.add('task');
+
+            actionsDiv.classList.add('actions');
+
+            li.append(taskDiv, actionsDiv);
+            return li;
+        }
+
+        function completeTodoItem(todoId, li) {
+            li.style.textDecoration = 'line-through';
+
+            fetch('/todos/' + todoId + '/complete', {
+                method: 'PUT'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Todo item completed:', data);
+                moveTodoToCompleted(li);
+                var actionsDiv = li.querySelector('.actions');
+                actionsDiv.innerHTML = ''; // Remove all buttons
+
+                var uncompleteButton = createButton('Uncomplete', 'uncomplete', function() {
+                    uncompleteTodoItem(todoId, li);
+                });
+
+                var deleteButton = createButton('Delete', 'delete', function() {
+                    deleteTodoItem(todoId, li);
+                });
+
+                actionsDiv.append(uncompleteButton, deleteButton);
+            })
+            .catch(error => {
+                console.error('Error completing todo item:', error);
+            });
+        }
+
+        function uncompleteTodoItem(todoId, li) {
+            li.style.textDecoration = 'none';
+
+            fetch('/todos/' + todoId + '/uncomplete', {
+                method: 'PUT'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Todo item uncompleted:', data);
+                moveCompletedToTodo(li);
+                var actionsDiv = li.querySelector('.actions');
+                actionsDiv.innerHTML = ''; // Remove all buttons
+
+                var completeButton = createButton('Complete', 'complete', function() {
+                    completeTodoItem(todoId, li);
+                });
+
+                var editButton = createButton('Edit', 'edit', function() {
+                    openEditModal(todoId, li.querySelector('.task'));
+                });
+
+                var deleteButton = createButton('Delete', 'delete', function() {
+                    deleteTodoItem(todoId, li);
+                });
+
+                actionsDiv.append(completeButton, editButton, deleteButton); // Add complete, edit, and delete buttons
+            })
+            .catch(error => {
+                console.error('Error uncompleting todo item:', error);
+            });
+        }
+
+        function moveTodoToCompleted(li) {
+            var todoList = document.getElementById('todoList');
+            var completedList = document.getElementById('completedList');
+
+            todoList.removeChild(li);
+            completedList.appendChild(li);
+        }
+
+        function moveCompletedToTodo(li) {
+            var todoList = document.getElementById('todoList');
+            var completedList = document.getElementById('completedList');
+
+            completedList.removeChild(li);
+            todoList.appendChild(li);
+        }
+
+        function openEditModal(todoId, taskDiv) {
+            var modal = document.getElementById('editModal');
+            var editInput = document.getElementById('editInput');
+            var saveButton = document.getElementById('saveButton');
+
+            editInput.value = taskDiv.textContent;
+
+            modal.style.display = 'block';
+
+            saveButton.addEventListener('click', function() {
+                var editedTask = editInput.value;
+                editTodoItem(todoId, editedTask, taskDiv);
+                modal.style.display = 'none';
+            });
+
+            var closeButton = document.getElementsByClassName('close')[0];
+            closeButton.addEventListener('click', function() {
+                modal.style.display = 'none';
+            });
+
+            window.addEventListener('click', function(event) {
+                if (event.target == modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+
+        function editTodoItem(todoId, editedTask, taskDiv) {
+            taskDiv.textContent = editedTask;
+
+            fetch('/todos/' + todoId, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ Task: editedTask }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Todo item edited:', data);
+            })
+            .catch(error => {
+                console.error('Error editing todo item:', error);
+            });
+        }
+
+        function deleteTodoItem(todoId, li) {
+            li.remove();
+
+            fetch('/todos/' + todoId, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Todo item deleted:', data);
+            })
+            .catch(error => {
+                console.error('Error deleting todo item:', error);
+            });
+        }
+
+        function createButton(text, className, clickHandler) {
+            var button = document.createElement('button');
+            button.textContent = text;
+            button.classList.add(className);
+            button.addEventListener('click', clickHandler);
+            return button;
+        }
     </script>
 </body>
 </html>
