@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Todo List</title>
+</head>
+<body>
+    <h1>Todo List</h1>
+    <form id="todoForm">
+        <input type="text" id="todoInput" placeholder="New task">
+        <button type="submit">Add</button>
+    </form>
+    <ul id="todoList"></ul>
+
+    <script>
+        document.getElementById('todoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var task = document.getElementById('todoInput').value;
+            fetch('/todos', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ Task: task }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                var li = document.createElement('li');
+                li.textContent = data.Task;
+                document.getElementById('todoList').appendChild(li);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        });
+
+        fetch('/todos')
+        .then(response => response.json())
+        .then(data => {
+            data.forEach(function(todo) {
+                var li = document.createElement('li');
+                li.textContent = todo.Task;
+                document.getElementById('todoList').appendChild(li);
+            });
+        });
+    </script>
+</body>
+</html>
