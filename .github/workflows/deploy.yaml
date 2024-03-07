@@ -1,0 +1,24 @@
+name: Deploy to KinD
+on: [push]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install Helm
+      uses: azure/setup-helm@v1
+
+    - name: Create KinD cluster
+      uses: helm/kind-action@v1.1.0
+
+    - name: Install PostgreSQL
+      run: |
+        helm repo add bitnami https://charts.bitnami.com/bitnami
+        helm install postgresql bitnami/postgresql
+
+    - name: Deploy application
+      run: |
+        helm upgrade --install my-app ./chart --wait
