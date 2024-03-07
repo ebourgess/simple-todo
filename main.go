@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -19,7 +21,13 @@ type Todo struct {
 }
 
 func main() {
-	db, err := gorm.Open("postgres", "host=localhost port=5432 user=postgres dbname=todo password=postgres sslmode=disable")
+	db, err := gorm.Open("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_PORT"),
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_NAME"),
+		os.Getenv("DB_PASSWORD"),
+	))
 	if err != nil {
 		log.Fatal(err)
 	}
