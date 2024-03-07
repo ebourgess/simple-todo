@@ -1,0 +1,5 @@
+apiVersion: v2
+name: todolist chart
+version: 1.0.0
+description: A Helm Chart for deploying a todo list application
+appVersion: 1.0.0

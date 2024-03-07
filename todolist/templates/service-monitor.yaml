@@ -1,0 +1,13 @@
+{{- if .Values.prometheus.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "mychart.fullname" . }}
+  namespace: {{ .Values.prometheus.serviceMonitor.namespace }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "mychart.labels" . | nindent 6 }}
+  endpoints:
+    - port: http
+{{- end }}
