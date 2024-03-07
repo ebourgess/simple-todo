@@ -1,24 +1,26 @@
-FROM golang:1.22
+# Stage 1: Build the application
+FROM golang:1.22 AS builder
 
 LABEL maintainer="Elias Bourgess <elias@ebourgess.dev>"
 
-# Set the Current Working Directory inside the container
 WORKDIR /app
 
-# Copy go mod and sum files
 COPY go.mod go.sum ./
-
-# Download all dependencies. Dependencies will be cached if the go.mod and go.sum files are not changed
 RUN go mod download
 
-# Copy the source from the current directory to the Working Directory inside the container
 COPY . .
+RUN CGO_ENABLED=0 go build -o todolist .
 
-# Build the Go app
-RUN go build -o main .
+# Stage 2: Create a smaller image to run the application
+FROM alpine:latest
 
-# Expose port 8080 to the outside world
+WORKDIR /app
+
+COPY --from=builder /app/todolist ./
+RUN chmod +x todolist
+COPY --from=builder /app/static ./static
+
 EXPOSE 8080
 
-# Command to run the executable
-CMD ["./main"]
+CMD ["/app/todolist"]
+
