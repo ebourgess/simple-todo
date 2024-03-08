@@ -1,0 +1,13 @@
+{{- if .Values.prometheus.prometheusRule.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "todolist.fullname" . }}
+  labels:
+    {{- toYaml .Values.prometheus.prometheusRule.additionalLabels | nindent 4 }}
+spec:
+  groups:
+  - name: {{ include "todolist.fullname" . }}
+    rules:
+    {{- toYaml .Values.prometheus.prometheusRule.rules | nindent 6 }}
+{{- end }}

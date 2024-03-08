@@ -1,0 +1,15 @@
+{{- if .Values.prometheus.serviceMonitor.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "todolist.fullname" . }}
+  labels:
+    {{- toYaml .Values.prometheus.serviceMonitor.additionalLabels | nindent 4 }}
+spec:
+  endpoints:
+  - port: http
+    interval: 30s
+  selector:
+    matchLabels:
+      {{- include "todolist.selectorLabels" . | nindent 6 }}
+{{- end }}
