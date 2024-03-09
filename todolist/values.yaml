@@ -47,7 +47,7 @@ service:
 
 ingress:
   enabled: true
-  className: ""
+  className: "nginx"
   spec: 
     className: nginx
   annotations:
@@ -57,7 +57,7 @@ ingress:
     - host: todolist.local
       paths:
         - path: /
-          pathType: Prefix
+          pathType: ImplementationSpecific
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:
