@@ -1,5 +1,5 @@
 name: Deploy to KinD
-on: [push]
+on: [workflow_dispatch, push]
 
 jobs:
   deploy:
@@ -12,13 +12,23 @@ jobs:
       uses: azure/setup-helm@v1
 
     - name: Create KinD cluster
-      uses: helm/kind-action@v1.1.0
+      uses: container-tools/kind-action@v2.0.3
+    
+    - name: Build and push Docker image
+      run: |
+        docker build -t localhost:5000/todolist:latest ./.
+        docker push localhost:5000/todolist:latest
 
-    - name: Install PostgreSQL
+    - name: Add prometheus-operator 
+      run: |
+        kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/release-0.50/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
+        kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/release-0.50/example/prometheus-operator-crd/monitoring.coreos.com_prometheusrules.yaml
+
+    - name: Deploy Postgres chart
       run: |
         helm repo add bitnami https://charts.bitnami.com/bitnami
-        helm install postgresql bitnami/postgresql
+        helm install my-postgresql bitnami/postgresql --version 14.3.1 --set auth.database=todo
 
-    - name: Deploy application
+    - name: Deploy Application
       run: |
-        helm upgrade --install my-app ./chart --wait
+        helm install todolist ./todolist/
