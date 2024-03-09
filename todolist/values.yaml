@@ -48,7 +48,9 @@ service:
 ingress:
   enabled: true
   className: ""
-  annotations: {}
+  spec: 
+    className: nginx
+  annotations:
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
   hosts:
@@ -138,4 +140,6 @@ prometheus:
           summary: High request latency
 
 postgresql:
-  existingSecret: postgres-credentials
+  enabled: true
+  auth:
+    database: todo

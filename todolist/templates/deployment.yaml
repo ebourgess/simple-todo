@@ -42,20 +42,14 @@ spec:
             - name: DB_PORT
               value: "5432"
             - name: DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.postgresql.existingSecret}}
-                  key: postgresql-username
+              value: postgres
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.postgresql.existingSecret}}
-                  key: postgresql-password
+                  name: {{ .Release.Name }}-postgresql
+                  key: postgres-password
             - name: DB_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.postgresql.existingSecret}}
-                  key: postgresql-database
+              value: todo
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}

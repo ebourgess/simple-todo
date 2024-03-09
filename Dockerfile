@@ -14,10 +14,10 @@ RUN CGO_ENABLED=0 go build -o todolist .
 # Stage 2: Create a smaller image to run the application
 FROM alpine:latest
 
+ENV GIN_MODE=release
 WORKDIR /app
 
 COPY --from=builder /app/todolist ./
-RUN chmod +x todolist
 COPY --from=builder /app/static ./static
 
 EXPOSE 8080
