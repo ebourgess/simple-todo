@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: localhost:5001/todolist:latest
+  repository: localhost:5000/todolist:latest
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -138,8 +138,3 @@ prometheus:
           severity: page
         annotations:
           summary: High request latency
-
-postgresql:
-  enabled: true
-  auth:
-    database: todo

@@ -38,7 +38,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             - name: DB_HOST
-              value: {{ .Release.Name }}-postgresql
+              value: my-postgresql
             - name: DB_PORT
               value: "5432"
             - name: DB_USER
@@ -46,7 +46,7 @@ spec:
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Release.Name }}-postgresql
+                  name: my-postgresql
                   key: postgres-password
             - name: DB_NAME
               value: todo
